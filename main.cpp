@@ -1,12 +1,12 @@
 #include "mainwindow.h"
+#include "playerwindow.h"
 
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
-    QMainWindow player;
-    w.show();
+    PlayerWindow videoplayer;
+    videoplayer.show();
     return a.exec();
 }

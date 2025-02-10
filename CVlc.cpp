@@ -32,6 +32,9 @@ CVlc::~CVlc() {
         libvlc_release(m_instance);
         m_instance = NULL;
     }
+    if(m_hwnd != NULL) {
+        m_hwnd = NULL;
+    }
 }
 
 bool CVlc::LoadMedia(const std::wstring& path){
@@ -41,24 +44,29 @@ bool CVlc::LoadMedia(const std::wstring& path){
         libvlc_media_release(m_media);
         m_media = NULL;
     }
-    m_media = libvlc_media_new_location(m_instance,s.data());
+    m_media = libvlc_media_new_path(m_instance,s.data());
     if(m_media == NULL) return false;
     return true;
 }
 
-void CVlc::SetHWnd(QWidget* widget){
-    if(widget){
-        m_hwnd = reinterpret_cast<HWND>(widget -> winId());
-    }else{
+bool CVlc::SetHWnd(QWidget* widget){
+    if(widget == nullptr){
         m_hwnd = NULL;
+        return false;
     }
+    m_hwnd = reinterpret_cast<HWND>(widget -> winId());
+    if(m_player == NULL){
+        m_player = libvlc_media_player_new_from_media(m_media);
+        if(m_player == NULL) return false;
+    }
+    if(m_hwnd != NULL){
+        libvlc_media_player_set_hwnd(m_player, m_hwnd);
+    }
+    return true;
 }
 
 bool CVlc::Play(){
     if(m_player == NULL) return false;
-    if(m_hwnd != NULL){
-        libvlc_media_player_set_hwnd(m_player, m_hwnd);
-    }
     int ret = libvlc_media_player_play(m_player);
     return ret == 0;
 }
@@ -75,15 +83,16 @@ bool CVlc::Stop(){
     return true;
 }
 
-float CVlc::GetPosition(){
+int CVlc::GetPosition(){
     if(m_player == NULL) return false;
-    float pos = libvlc_media_player_get_position(m_player);
+    libvlc_time_t rm = libvlc_media_player_get_time(m_player);
+    int pos = rm / 1000;
     return pos;
 }
 
-void CVlc::SetPosition(float pos){
+void CVlc::SetPosition(int pos){
     if(m_player == NULL) return;
-    libvlc_media_player_set_position(m_player, pos);
+    libvlc_media_player_set_time(m_player, (libvlc_time_t)(pos*1000));
 }
 
 int CVlc::GetVolume(){
@@ -97,7 +106,7 @@ void CVlc::SetVolume(int volume){
     libvlc_audio_set_volume(m_player, volume);
 }
 
-float CVlc::GetLength(){
+int CVlc::GetLength(){
     if(m_player == NULL) return -1;
     libvlc_time_t rm = libvlc_media_player_get_length(m_player);
     if(rm == -1) return -1;
@@ -119,3 +128,4 @@ MediaSize CVlc::GetMediaInfo(){
         (int)height
         );
 }
+
